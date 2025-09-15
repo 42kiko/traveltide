@@ -1,6 +1,6 @@
 # Career Hub 🚀
 
-![TravelTide Logo](img/logo-bg.png)
+![TravelTide Logo](img/2b2f561b-9726-42aa-ad88-004b4fc4e523.webp)
 
 A data analysis project for **TravelTide** to help build better customer rewards programs.
 
