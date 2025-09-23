@@ -1,3 +1,4 @@
+![TravelTide Logo](img/logo-bg.png)
 # 🏆 TravelTide Rewards
 
 This project segments TravelTide customers into clear personas to enable targeted allocation of personalized perks.
