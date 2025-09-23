@@ -26,9 +26,9 @@ def engineer_features(df, user_key="user_id"):
     if "session_start" in df.columns and "session_end" in df.columns:
         df["session_duration"] = (df["session_end"] - df["session_start"]).dt.total_seconds() / 60.0
     else:
-        df["session_duration"] = None  # falls Spalten fehlen
+        df["session_duration"] = None
 
-    # --- Rabattnutzung ---
+    # --- Discount ---
     if "flight_discount" in df.columns:
         feats["avg_flight_discount"] = grouped["flight_discount"].mean()
         feats["total_flight_discount"] = grouped["flight_discount"].sum()
@@ -36,19 +36,19 @@ def engineer_features(df, user_key="user_id"):
         feats["avg_hotel_discount"] = grouped["hotel_discount"].mean()
         feats["total_hotel_discount"] = grouped["hotel_discount"].sum()
 
-    # --- Useraktivität ---
+    # --- Sessions ---
     feats["total_sessions"] = grouped.size()
     if "session_duration" in df.columns:
         feats["avg_session_duration"] = grouped["session_duration"].mean()
         feats["total_session_duration"] = grouped["session_duration"].sum()
 
-    # --- Buchungsverhalten ---
+    # --- Bookings ---
     if "flight_booked" in df.columns:
         feats["total_flights_booked"] = grouped["flight_booked"].sum()
     if "hotel_booked" in df.columns:
         feats["total_hotels_booked"] = grouped["hotel_booked"].sum()
 
-    # --- Finanzielles Potenzial ---
+    # --- Financel ---
     if "base_fare_usd" in df.columns:
         feats["avg_flight_fare_usd"] = grouped["base_fare_usd"].mean()
         feats["total_flight_fare_usd"] = grouped["base_fare_usd"].sum()
