@@ -37,4 +37,3 @@ def get_booking_groups(df):
         'both_booked': df[df['flight_booked'] & df['hotel_booked']]
     }
 
-

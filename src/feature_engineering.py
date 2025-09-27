@@ -1,4 +1,3 @@
-from src.setup import get_base
 import pandas as pd
 from datetime import datetime
 from sklearn.preprocessing import StandardScaler
@@ -6,30 +5,32 @@ from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.pipeline import Pipeline
 import matplotlib.pyplot as plt
-
-def get_features(df):
-
-    df_features = pd.DataFrame()
-    df_features['age'] = (datetime.now() - df['birthdate']).dt.days // 365
-    df_features['session_duration_min'] = (df['session_end'] - df['session_start']).dt.total_seconds() / 60
-    df_features['hotel_total_spend_usd'] = df['hotel_price_per_room_night_usd'] * df['nights'].fillna(0) * df['rooms'].fillna(0)
-
-
-
-
-
-
-
-    return df_features
-
-
 import pandas as pd
 
+
 def engineer_features(df, user_key="user_id"):
+
     grouped = df.groupby(user_key)
     feats = {}
+
+    feats['age'] = (datetime.now() - df['birthdate']).dt.days // 365
+
+    if "page_clicks" in df.columns:
+        feats["avg_clicks"] = grouped["page_clicks"].mean()
+
+    feats["total_cancellation"] = grouped["cancellation"].sum()
+
+    # Gender F = 0, M = 1
+    feats["gender"] = df["gender"].map({"F": 0, "M": 1})
+
+    # Married Yes = 1, NO = 2
+    feats["married"] = df["married"].astype(int)
+
+    # Children Yes = 1, NO = 2
+    df["has_children"] = df["has_children"].astype(int)
+
     if "session_start" in df.columns and "session_end" in df.columns:
-        df["session_duration"] = (df["session_end"] - df["session_start"]).dt.total_seconds() / 60.0
+        feats['session_duration_min'] = (df['session_end'] - df['session_start']).dt.total_seconds() / 60
     else:
         df["session_duration"] = None
 
