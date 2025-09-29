@@ -6,6 +6,10 @@ from sklearn.cluster import KMeans
 from sklearn.pipeline import Pipeline
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
+from datetime import datetime
+from sklearn.metrics import silhouette_score
+import seaborn as sns
 
 
 def engineer_features(df, user_key="user_id"):
@@ -84,44 +88,3 @@ def engineer_features(df, user_key="user_id"):
 
     user_features = pd.DataFrame(feats)
     return user_features.fillna(0)
-
-
-
-def build_pca_pipeline(n_components=2, random_state=42):
-    """
-    Pipeline: Skalierung + PCA (nur für Dimensionality Reduction)
-    """
-    pipeline = Pipeline([
-        ("scaler", StandardScaler()),
-        ("pca", PCA(n_components=n_components, random_state=random_state)),
-    ])
-    return pipeline
-
-
-def build_cluster_pipeline(n_clusters=2, n_components=2, random_state=42):
-    """
-    Pipeline: Skalierung + PCA + KMeans (für Cluster)
-    """
-    pipeline = Pipeline([
-        ("scaler", StandardScaler()),
-        ("pca", PCA(n_components=n_components, random_state=random_state)),
-        ("kmeans", KMeans(n_clusters=n_clusters, random_state=random_state))
-    ])
-    return pipeline
-
-
-def plot_pca_clusters(pca_data, labels, title="PCA Cluster Plot"):
-    """
-    Erstellt einen schönen 2D-Scatterplot der PCA-Daten mit Clustern.
-    """
-    plt.figure(figsize=(8, 6))
-    scatter = plt.scatter(
-        pca_data[:, 0], pca_data[:, 1],
-        c=labels, cmap="viridis", alpha=0.7, s=50, edgecolor="k"
-    )
-    plt.title(title)
-    plt.xlabel("PC1")
-    plt.ylabel("PC2")
-    plt.colorbar(scatter, label="Cluster")
-    plt.grid(True, linestyle="--", alpha=0.5)
-    plt.show()
