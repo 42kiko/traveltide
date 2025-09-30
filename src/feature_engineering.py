@@ -117,7 +117,255 @@ def engineer_features(df, user_key="user_id"):
     user_features["total_people"] = grouped["people_count"].sum()
     user_features["avg_people"] = grouped["people_count"].mean()
 
+
+
     # Fill NAs
+    user_features = user_features.fillna(0)
+
+    return user_features
+
+
+
+def engineer_features2(df, user_key="user_id"):
+
+    df = df.copy()
+
+    # Age
+    if 'birthdate' in df.columns:
+        df['age'] = (datetime.now() - pd.to_datetime(df['birthdate'])).dt.days // 365
+
+
+
+    # Session-Duration
+    if "session_start" in df.columns and "session_end" in df.columns:
+        df['session_duration'] = (pd.to_datetime(df['session_end']) - pd.to_datetime(df['session_start'])).dt.total_seconds() / 60
+    else:
+        df['session_duration'] = 0
+
+    # Groupby User
+    grouped = df.groupby(user_key)
+
+    # DataFrame by User
+    user_features = pd.DataFrame(index=grouped.groups.keys())
+    user_features.index.name = user_key
+
+    # Basisdemografie
+    if 'age' in df.columns:
+        user_features['age'] = grouped['age'].last()
+    if 'gender' in df.columns:
+        user_features['gender'] = grouped['gender'].first().map({'F':0, 'M':1})
+    if 'married' in df.columns:
+        user_features['married'] = grouped['married'].first().astype(int)
+    if 'has_children' in df.columns:
+        user_features['has_children'] = grouped['has_children'].first().astype(int)
+
+    # Destinations
+    if "destination" in df.columns:
+        user_features["n_unique_destinations"] = grouped["destination"].nunique()
+    if "trip_type" in df.columns:
+        user_features["n_unique_trip_types"] = grouped["trip_type"].nunique()
+
+    # Spending
+    if "base_fare_usd" in df.columns:
+        user_features["avg_flight_fare_usd"] = grouped["base_fare_usd"].mean()
+        user_features["total_flight_fare_usd"] = grouped["base_fare_usd"].sum()
+    if "hotel_total_spend_usd" in df.columns:
+        user_features["avg_hotel_spend_usd"] = grouped["hotel_total_spend_usd"].mean()
+        user_features["total_hotel_spend_usd"] = grouped["hotel_total_spend_usd"].sum()
+
+    # Buchungen
+    if "flight_booked" in df.columns:
+        user_features["total_flights_booked"] = grouped["flight_booked"].sum()
+    if "hotel_booked" in df.columns:
+        user_features["total_hotels_booked"] = grouped["hotel_booked"].sum()
+
+    # Rabatte
+    if "flight_discount" in df.columns and "base_fare_usd" in df.columns:
+        user_features["total_flight_discount"] = grouped["flight_discount"].sum()
+        user_features["avg_flight_discount"] = grouped["flight_discount"].mean()
+        user_features["flight_discount_ratio"] = grouped.apply(
+            lambda g: (g["flight_discount"] > 0).sum() / (g["flight_booked"].sum() + 1e-6)
+        )
+        user_features["avg_flight_discount_percentage"] = (
+            user_features["total_flight_discount"] / (user_features["total_flight_fare_usd"] + 1e-6)
+        )
+    if "hotel_discount" in df.columns and "hotel_total_spend_usd" in df.columns:
+        user_features["total_hotel_discount"] = grouped["hotel_discount"].sum()
+        user_features["avg_hotel_discount"] = grouped["hotel_discount"].mean()
+        user_features["hotel_discount_ratio"] = grouped.apply(
+            lambda g: (g["hotel_discount"] > 0).sum() / (g["hotel_booked"].sum() + 1e-6)
+        )
+
+    # Checked Bags
+    if "checked_bags" in df.columns and "flight_booked" in df.columns:
+        user_features["avg_checked_bags"] = grouped["checked_bags"].sum() / (user_features["total_flights_booked"] + 1e-6)
+
+    # Cancellation Rate
+    if "cancellation" in df.columns:
+        user_features["total_cancellations"] = grouped["cancellation"].sum()
+        total_bookings = (
+            user_features["total_flights_booked"].fillna(0) +
+            user_features["total_hotels_booked"].fillna(0)
+        )
+        user_features["cancellation_rate"] = user_features["total_cancellations"] / (total_bookings + 1e-6)
+
+    # Flight + Hotel Kombination
+    if "flight_booked" in df.columns and "hotel_booked" in df.columns:
+        user_features["flight_hotel_combo_ratio"] = grouped.apply(
+            lambda g: ((g["flight_booked"] > 0) & (g["hotel_booked"] > 0)).sum() / (len(g) + 1e-6)
+        )
+
+    # Hotel focus
+    if "hotel_booked" in df.columns:
+        total_bookings = (
+            user_features["total_flights_booked"].fillna(0) +
+            user_features["total_hotels_booked"].fillna(0)
+        )
+        user_features["hotel_booking_ratio"] = user_features["total_hotels_booked"] / (total_bookings + 1e-6)
+
+    # Fill NAs
+    user_features = user_features.fillna(0)
+
+    return user_features
+
+
+def engineer_features_combined(df, user_key="user_id"):
+
+    df = df.copy()
+
+    # --- Age ---
+    if 'birthdate' in df.columns:
+        df['age'] = (datetime.now() - pd.to_datetime(df['birthdate'])).dt.days // 365
+
+    # --- Session Duration ---
+    if "session_start" in df.columns and "session_end" in df.columns:
+        df['session_duration'] = (
+            pd.to_datetime(df['session_end']) - pd.to_datetime(df['session_start'])
+        ).dt.total_seconds() / 60
+    else:
+        df['session_duration'] = 0
+
+    # --- Group by user ---
+    grouped = df.groupby(user_key)
+    user_features = pd.DataFrame(index=grouped.groups.keys())
+    user_features.index.name = user_key
+
+    # --- Demographics ---
+    if 'age' in df.columns:
+        user_features['age'] = grouped['age'].last()
+    if 'gender' in df.columns:
+        user_features['gender'] = grouped['gender'].first().map({'F': 0, 'M': 1})
+    if 'married' in df.columns:
+        user_features['married'] = grouped['married'].first().astype(int)
+    if 'has_children' in df.columns:
+        user_features['has_children'] = grouped['has_children'].first().astype(int)
+
+    # --- Clicks ---
+    if "page_clicks" in df.columns:
+        user_features["avg_clicks"] = grouped["page_clicks"].mean()
+        user_features["total_clicks"] = grouped["page_clicks"].sum()
+
+    # --- Cancellations ---
+    if "cancellation" in df.columns:
+        user_features["total_cancellations"] = grouped["cancellation"].sum()
+
+    # --- Session Aggregates ---
+    if "session_duration" in df.columns:
+        user_features["avg_session_duration"] = grouped["session_duration"].mean()
+        user_features["total_session_duration"] = grouped["session_duration"].sum()
+        user_features["total_sessions"] = grouped.size()
+
+    # --- Destinations & Trips ---
+    if "destination" in df.columns:
+        user_features["n_unique_destinations"] = grouped["destination"].nunique()
+    if "trip_type" in df.columns:
+        user_features["n_unique_trip_types"] = grouped["trip_type"].nunique()
+
+    # --- Spending ---
+    if "base_fare_usd" in df.columns:
+        user_features["avg_flight_fare_usd"] = grouped["base_fare_usd"].mean()
+        user_features["total_flight_fare_usd"] = grouped["base_fare_usd"].sum()
+    if "hotel_total_spend_usd" in df.columns:
+        user_features["avg_hotel_spend_usd"] = grouped["hotel_total_spend_usd"].mean()
+        user_features["total_hotel_spend_usd"] = grouped["hotel_total_spend_usd"].sum()
+
+    # --- Bookings ---
+    if "flight_booked" in df.columns:
+        user_features["total_flights_booked"] = grouped["flight_booked"].sum()
+    if "hotel_booked" in df.columns:
+        user_features["total_hotels_booked"] = grouped["hotel_booked"].sum()
+
+    # --- Discounts ---
+    if "flight_discount" in df.columns:
+        user_features["total_flight_discount"] = grouped["flight_discount"].sum()
+        user_features["avg_flight_discount"] = grouped["flight_discount"].mean()
+        if "flight_booked" in df.columns:
+            user_features["flight_discount_ratio"] = grouped.apply(
+                lambda g: (g["flight_discount"] > 0).sum() / (g["flight_booked"].sum() + 1e-6)
+            )
+        if "base_fare_usd" in df.columns:
+            user_features["avg_flight_discount_percentage"] = (
+                user_features["total_flight_discount"] / (user_features["total_flight_fare_usd"] + 1e-6)
+            )
+    if "hotel_discount" in df.columns:
+        user_features["total_hotel_discount"] = grouped["hotel_discount"].sum()
+        user_features["avg_hotel_discount"] = grouped["hotel_discount"].mean()
+        if "hotel_booked" in df.columns:
+            user_features["hotel_discount_ratio"] = grouped.apply(
+                lambda g: (g["hotel_discount"] > 0).sum() / (g["hotel_booked"].sum() + 1e-6)
+            )
+
+    # --- Checked Bags ---
+    if "checked_bags" in df.columns and "flight_booked" in df.columns:
+        user_features["avg_checked_bags"] = grouped["checked_bags"].sum() / (user_features["total_flights_booked"] + 1e-6)
+
+    # --- Cancellation Rate ---
+    if "cancellation" in df.columns:
+        total_bookings = (
+            user_features["total_flights_booked"].fillna(0) +
+            user_features["total_hotels_booked"].fillna(0)
+        )
+        user_features["cancellation_rate"] = user_features["total_cancellations"] / (total_bookings + 1e-6)
+
+    # --- Flight + Hotel Combo ---
+    if "flight_booked" in df.columns and "hotel_booked" in df.columns:
+        user_features["flight_hotel_combo_ratio"] = grouped.apply(
+            lambda g: ((g["flight_booked"] > 0) & (g["hotel_booked"] > 0)).sum() / (len(g) + 1e-6)
+        )
+
+    # --- Hotel Focus ---
+    if "hotel_booked" in df.columns:
+        total_bookings = (
+            user_features["total_flights_booked"].fillna(0) +
+            user_features["total_hotels_booked"].fillna(0)
+        )
+        user_features["hotel_booking_ratio"] = user_features["total_hotels_booked"] / (total_bookings + 1e-6)
+
+    # --- Countries ---
+    if "country" in df.columns:
+        user_features["n_unique_countries"] = grouped["country"].nunique()
+
+    # --- Dates ---
+    if "booking_date" in df.columns:
+        user_features["first_booking"] = grouped["booking_date"].min()
+        user_features["last_booking"] = grouped["booking_date"].max()
+        user_features["days_active"] = (user_features["last_booking"] - user_features["first_booking"]).dt.days
+        if "flight_booked" in df.columns:
+            user_features["bookings_per_month"] = user_features["total_flights_booked"] / (
+                user_features["days_active"] / 30.44 + 1
+            )
+
+    # --- People per booking (Seats preferred, fallback Rooms) ---
+    if "seats" in df.columns or "rooms" in df.columns:
+        df["people_count"] = np.where(
+            df.get("seats", 0) > 0,
+            df.get("seats", 0),
+            np.where(df.get("rooms", 0) > 0, df.get("rooms", 0), 0)
+        )
+        user_features["total_people"] = grouped["people_count"].sum()
+        user_features["avg_people"] = grouped["people_count"].mean()
+
+    # --- Fill NAs ---
     user_features = user_features.fillna(0)
 
     return user_features

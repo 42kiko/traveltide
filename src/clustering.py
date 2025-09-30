@@ -78,7 +78,7 @@ class SegmentationPipeline:
         labels = self.kmeans_model.predict(self.components)
         plt.figure(figsize=(6, 6))
         sns.scatterplot(
-            x=self.components[:, 0], y=self.components[:, 1],
+            x=self.components[:, 1], y=self.components[:, 0],
             hue=labels, palette="Set2", s=50
         )
         plt.title(f"KMeans Clusters (k={self.kmeans_model.n_clusters})")
