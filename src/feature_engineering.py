@@ -536,3 +536,102 @@ def engineer_features_optimized(df, user_key="user_id"):
     user_features = user_features.replace([np.inf, -np.inf], 0)
 
     return user_features
+
+
+def engineer_features_focused(df, user_key="user_id"):
+    """
+    Fokussierte Version mit den wichtigsten Features - weniger ist mehr!
+    """
+    df = df.copy()
+
+    # Age
+    if 'birthdate' in df.columns:
+        df['age'] = (datetime.now() - pd.to_datetime(df['birthdate'])).dt.days // 365
+
+    # Nur die essenziellen Zeit-Features
+    if "session_start" in df.columns and "session_end" in df.columns:
+        df['session_start'] = pd.to_datetime(df['session_start'])
+        df['session_duration'] = (pd.to_datetime(df['session_end']) - df['session_start']).dt.total_seconds() / 60
+
+    # Groupby User
+    grouped = df.groupby(user_key)
+    user_features = pd.DataFrame(index=grouped.groups.keys())
+    user_features.index.name = user_key
+
+
+    # Demographics
+    if 'age' in df.columns:
+        user_features['age'] = grouped['age'].last()
+    if 'gender' in df.columns:
+        user_features['gender'] = grouped['gender'].first()
+        user_features['gender'] = user_features['gender'].map({'F':0, 'M':1})
+    if 'married' in df.columns:
+        user_features['married'] = grouped['married'].first().astype(int)
+    if 'has_children' in df.columns:
+        user_features['has_children'] = grouped['has_children'].first().astype(int)
+
+    # NUR DIE WICHTIGSTEN FEATURES - in 4 Kategorien gruppiert:
+
+    # 1. Buchungsverhalten (Kern-Metriken)
+    if "flight_booked" in df.columns:
+        user_features["total_flights_booked"] = grouped["flight_booked"].sum()
+    if "hotel_booked" in df.columns:
+        user_features["total_hotels_booked"] = grouped["hotel_booked"].sum()
+
+    user_features["total_bookings"] = (
+        user_features.get("total_flights_booked", 0) +
+        user_features.get("total_hotels_booked", 0)
+    )
+
+    # 2. Ausgabenverhalten
+    total_spend = 0
+    if "base_fare_usd" in df.columns:
+        user_features["total_flight_spend"] = grouped["base_fare_usd"].sum()
+        total_spend += user_features["total_flight_spend"]
+    if "hotel_total_spend_usd" in df.columns:
+        user_features["total_hotel_spend"] = grouped["hotel_total_spend_usd"].sum()
+        total_spend += user_features["total_hotel_spend"]
+
+    user_features["total_spend"] = total_spend
+    user_features["avg_spend_per_booking"] = user_features["total_spend"] / (user_features["total_bookings"] + 1)
+
+    # 3. Engagement-Metriken
+    if "session_duration" in df.columns:
+        user_features["total_sessions"] = grouped.size()
+        user_features["avg_session_duration"] = grouped["session_duration"].mean()
+        user_features["total_session_duration"] = grouped["session_duration"].sum()
+
+    if "page_clicks" in df.columns:
+        user_features["total_clicks"] = grouped["page_clicks"].sum()
+        user_features["clicks_per_session"] = user_features["total_clicks"] / (user_features["total_sessions"] + 1)
+
+    # 4. Rabatt-Verhalten
+    if "flight_discount" in df.columns:
+        user_features["flight_discount_usage"] = grouped["flight_discount"].mean()
+    if "hotel_discount" in df.columns:
+        user_features["hotel_discount_usage"] = grouped["hotel_discount"].mean()
+
+    # WENIGE, ABER AUSSAGEKRÄFTIGE KOMBINIERTE FEATURES:
+    user_features["engagement_score"] = (
+        user_features.get("total_sessions", 0) * 0.4 +
+        user_features.get("total_clicks", 0) * 0.3 +
+        user_features.get("total_session_duration", 0) * 0.3
+    )
+
+    user_features["value_score"] = (
+        user_features.get("total_spend", 0) * 0.7 +
+        user_features.get("avg_spend_per_booking", 0) * 0.3
+    )
+
+    # Statt vieler einzelner Discount-Features - ein kombinierter Score
+    user_features["discount_affinity"] = (
+        user_features.get("flight_discount_usage", 0) * 0.6 +
+        user_features.get("hotel_discount_usage", 0) * 0.4
+    )
+
+    # Fill NAs
+    user_features = user_features.fillna(0)
+    user_features = user_features.replace([np.inf, -np.inf], 0)
+
+    print(f"Fokussierte Features erstellt: {user_features.shape[1]} Features")
+    return user_features
