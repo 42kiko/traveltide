@@ -8,9 +8,9 @@ This project segments TravelTide customers into clear personas to enable targete
 
 ## 🎯 Objectives
 
-- **Segmentation:** Identify customer groups based on booking behavior and engagement.  
-- **Personalization:** Assign **one single** tailored perk per persona.  
-- **Optimization:** Derive data-driven recommendations for marketing and loyalty programs.  
+- **Segmentation:** Identify customer groups based on booking behavior and engagement.
+- **Personalization:** Assign **one single** tailored perk per persona.
+- **Optimization:** Derive data-driven recommendations for marketing and loyalty programs.
 
 ---
 
@@ -32,8 +32,8 @@ This project segments TravelTide customers into clear personas to enable targete
    )
    ```
 
-2. **🔎 EDA:** Analyzed booking frequency, spending patterns, and perk engagement using Python & Tableau.  
-3. **🤖 Clustering:** Optimized at **8 clusters** (Silhouette ≈ 0.19), based on booking behavior, cancellations, spending, and discounts.  
+2. **🔎 EDA:** Analyzed booking frequency, spending patterns, and perk engagement using Python & Tableau.
+3. **🤖 Clustering:** Optimized at **8 clusters** (Silhouette ≈ 0.19), based on booking behavior, cancellations, spending, and discounts.
 
 ---
 
@@ -69,37 +69,37 @@ This project segments TravelTide customers into clear personas to enable targete
 
 ## 📈 Visual Insights
 
-### Revenue Share by Segment  
-![Revenue Share](report/revenue_share.png)
+### Revenue Share by Segment
+![Revenue Share](/report/revenue_share.png)
 
-### Customer Value vs Segment Size  
-![Customer Value Bubble](report/executive_kpi_dashboard.png)
+### Customer Value vs Segment Size
+![Customer Value Bubble](/report/executive_kpi_dashboard.png)
 
-### KPI Dashboard  
-![KPI Dashboard](report/executive_overview_kpis.png)
+### KPI Dashboard
+![KPI Dashboard](/report/executive_overview_kpis.png)
 
 ---
 
 ## 💡 Key Insights
 
-- **70% of revenue** comes from only **3 segments** → Hotel Loyalists, Premium Elites, Family Package.  
-- **Low-value segments** (0, 3, 6) need activation strategies to increase engagement.  
-- **Discount Hunters** represent a price-sensitive group → can be retained via promotions.  
-- **Family & Hotel travelers** are highly engaged → perks strengthen loyalty.  
+- **70% of revenue** comes from only **3 segments** → Hotel Loyalists, Premium Elites, Family Package.
+- **Low-value segments** (0, 3, 6) need activation strategies to increase engagement.
+- **Discount Hunters** represent a price-sensitive group → can be retained via promotions.
+- **Family & Hotel travelers** are highly engaged → perks strengthen loyalty.
 
 ---
 
 ## 📑 Full Report
 
-👉 [Download Full PDF Presentation](Travel%20Tide.pdf)  
+👉 [Download Full PDF Presentation](Travel%20Tide.pdf)
 
 ---
 
 ## 🛠️ Tools Used
-- **Python**: pandas, seaborn, matplotlib, scikit-learn  
-- **SQL**: Feature engineering & filtering  
-- **Visualization**: Custom dashboards, Tableau  
-- **Output**: PowerPoint-ready CSVs, PDF report  
+- **Python**: pandas, seaborn, matplotlib, scikit-learn
+- **SQL**: Feature engineering & filtering
+- **Visualization**: Custom dashboards, Tableau
+- **Output**: PowerPoint-ready CSVs, PDF report
 
 ---
 
