@@ -1,9 +1,3 @@
-Perfekt 👍 Ich baue dir das alles zu einem kompletten README.md zusammen – mit deinem Logo, den Tabellen (Perks, Personas, KPIs), Diagrammen aus ../report/ und dem Link zum PDF. Das Logo binde ich klein ein (per Markdown-Attributen oder CSS-Style).
-
-⸻
-
-Final README.md Vorschlag
-
 ![TravelTide Logo](img/logo-bg.png){ width=120px }
 
 # 🏆 TravelTide Rewards
