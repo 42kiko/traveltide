@@ -1,4 +1,4 @@
-![TravelTide Logo](img/logo-bg.png){ width=120px }
+![TravelTide Logo](img/logo-bg.png)
 
 # 🏆 TravelTide Rewards
 
@@ -70,13 +70,13 @@ This project segments TravelTide customers into clear personas to enable targete
 ## 📈 Visual Insights
 
 ### Revenue Share by Segment
-![Revenue Share](/report/revenue_share.png)
+![Revenue Share](./report/revenue_share.png)
 
 ### Customer Value vs Segment Size
-![Customer Value Bubble](/report/executive_kpi_dashboard.png)
+![Customer Value Bubble](./report/executive_kpi_dashboard.png)
 
 ### KPI Dashboard
-![KPI Dashboard](/report/executive_overview_kpis.png)
+![KPI Dashboard](./report/executive_overview_kpis.png)
 
 ---
 
