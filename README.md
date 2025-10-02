@@ -69,16 +69,25 @@ This project segments TravelTide customers into clear personas to enable targete
 
 ## 📈 Visual Insights
 
+
 ### Revenue Share by Segment
-![Revenue Share](./report/revenue_share.png)
+![Revenue Share](./report/revenue_share_segments.png)
 
 ### Customer Value vs Segment Size
-![Customer Value Bubble](./report/executive_kpi_dashboard.png)
-
-### KPI Dashboard
-![KPI Dashboard](./report/executive_overview_kpis.png)
+![Customer Value Bubble](./report/customer_value_bubble.png)
 
 ---
+
+## 🔎 Deep Dives per Segment
+Each segment can also be visualized with detailed plots (spending distribution, age profile, destinations, revenue share).
+
+Example:
+
+### Hotel Loyalists
+![Hotel Loyalists Deep Dive](./report/deepdive_Hotel_Loyalists.png)
+
+---
+
 
 ## 💡 Key Insights
 
