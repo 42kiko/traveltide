@@ -1,4 +1,4 @@
-![TravelTide Logo](img/logo-bg.png)
+![TravelTide Logo](img/page1.png)
 
 # 🏆 TravelTide Rewards
 
