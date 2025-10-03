@@ -84,7 +84,7 @@ Each segment can also be visualized with detailed plots (spending distribution, 
 Example:
 
 ### Hotel Loyalists
-![Hotel Loyalists Deep Dive](./report/deepdive_Hotel_Loyalists.png)
+![Hotel Loyalists Deep Dive](./report/segments/deepdive_Hotel_Loyalists.png)
 
 ---
 
