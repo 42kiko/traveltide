@@ -1,9 +1,0 @@
-Cluster,Customer_Count,Avg_Spending,Revenue_Share_%,Recommended_Perk,Business_Goal
-Cluster 0,363,125.54735537190084,0.6110676853603718,No Cancellation Fees,Build trust with flexible policies
-Cluster 1,1490,928.0644093959731,18.54127137976445,Exclusive Discounts,Increase engagement with deals
-Cluster 2,1532,775.6835574412532,15.933767465815377,Free Checked Bag,Retain family/high-baggage travelers
-Cluster 3,184,0.0,0.0,1 Night Free Hotel,Boost loyalty with premium bundles
-Cluster 4,1554,1760.1185456885455,36.67482560786778,Free Hotel Meal,Encourage hotel loyalty
-Cluster 5,61,12958.658032786885,10.599002348455258,Premium Lounge & Concierge,Maximize value from ultra-premium travelers
-Cluster 6,274,0.0,0.0,Welcome Bonus 10%,Activate inactive customers
-Cluster 7,540,2436.3030555555556,17.64006551273677,Family Package Deals,Upsell families & group travelers
