@@ -1,307 +1,180 @@
 """
-Clustering utilities for the TravelTide project.
+clustering.py
+~~~~~~~~~~~~~
 
-This module defines a `SegmentationPipeline` class that wraps common steps
-required to cluster user-level feature matrices. It uses PCA for dimensionality
-reduction and KMeans for clustering, and offers convenience methods for
-evaluating and visualising results.
+This module contains functionality to perform unsupervised clustering
+on the engineered feature set. It provides tools to standardise
+features, reduce dimensionality with PCA, select an appropriate
+number of clusters using silhouette scores and train a KMeans model.
+
+Functions
+---------
+scale_and_reduce(features_df: pd.DataFrame, n_components: int = 5) -> Tuple[np.ndarray, PCA, StandardScaler]
+    Standardise the feature matrix and apply Principal Component Analysis.
+
+find_optimal_clusters(X: np.ndarray, k_range: Iterable[int]) -> Dict[int, float]
+    Compute silhouette scores for a range of cluster counts to aid
+    selection of the optimal ``k``.
+
+fit_kmeans(X: np.ndarray, n_clusters: int, random_state: int = 42) -> KMeans
+    Fit a KMeans model to the reduced feature matrix.
+
+assign_clusters(model: KMeans, X: np.ndarray) -> np.ndarray
+    Predict cluster labels for each sample.
+
+compute_cluster_summary(features_df: pd.DataFrame, labels: np.ndarray) -> pd.DataFrame
+    Generate aggregate statistics per cluster to facilitate profiling.
 """
 
 from __future__ import annotations
 
+from typing import Iterable, Tuple, Dict
+
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
-# typing imports
-from typing import Optional, Tuple, Dict
 
-
-
-class SegmentationPipeline:
-    """
-    A simple pipeline for reducing feature dimensionality via PCA and
-    subsequently clustering the data using KMeans.
+def scale_and_reduce(features_df: pd.DataFrame, n_components: int = 5) -> Tuple[np.ndarray, PCA, StandardScaler]:
+    """Standardise features and reduce dimensionality using PCA.
 
     Parameters
     ----------
-    variance_threshold : float, optional
-        Proportion of total variance that PCA should retain. Defaults to 0.95.
-    max_clusters : int, optional
-        Maximum number of clusters to evaluate when searching for the optimal
-        number of KMeans clusters. Defaults to 10.
+    features_df : pd.DataFrame
+        The user‑level feature matrix. All columns should be numeric.
+    n_components : int, optional
+        Number of principal components to retain. Defaults to 5.
+
+    Returns
+    -------
+    np.ndarray
+        The PCA‑transformed features array.
+    PCA
+        The fitted PCA instance.
+    StandardScaler
+        The scaler used to standardise the data.
     """
+    # Ensure we only scale numeric columns
+    X = features_df.select_dtypes(include=[np.number]).values
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    pca = PCA(n_components=n_components, random_state=42)
+    X_reduced = pca.fit_transform(X_scaled)
+    return X_reduced, pca, scaler
 
-    def __init__(self, variance_threshold: float = 0.95, max_clusters: int = 10) -> None:
-        self.variance_threshold = variance_threshold
-        self.max_clusters = max_clusters
-        self.scaler = StandardScaler()
-        self.pca: Optional[PCA] = None
-        self.components: Optional[np.ndarray] = None
-        self.explained_var: Optional[np.ndarray] = None
-        self.kmeans_model: Optional[KMeans] = None
-        self.kmeans_scores: dict[int, float] = {}
 
-    # -------------------
-    # Data Preparation
-    # -------------------
-    def prepare_features(self, df: pd.DataFrame, drop_cols: Optional[list[str]] = None) -> tuple[np.ndarray, pd.DataFrame]:
-        """
-        Drop specified columns, remove rows with missing values and scale features.
+def find_optimal_clusters(X: np.ndarray, k_range: Iterable[int] = range(2, 8)) -> Dict[int, float]:
+    """Calculate silhouette scores to determine optimal cluster number.
 
-        Parameters
-        ----------
-        df : pandas.DataFrame
-            Raw features for clustering.
-        drop_cols : list of str, optional
-            Column names to drop before scaling. Defaults to ``None``.
+    Parameters
+    ----------
+    X : np.ndarray
+        The feature matrix (ideally PCA‑reduced) used for clustering.
+    k_range : iterable of int, optional
+        Range of ``k`` values (number of clusters) to evaluate. Defaults
+        to 2 through 7.
 
-        Returns
-        -------
-        tuple of (numpy.ndarray, pandas.DataFrame)
-            Scaled features and the cleaned DataFrame.
-        """
-        if drop_cols:
-            df = df.drop(columns=drop_cols, errors="ignore")
-        df = df.dropna()
-        features_scaled = self.scaler.fit_transform(df)
-        return features_scaled, df
+    Returns
+    -------
+    dict
+        A mapping of ``k`` to its corresponding silhouette score.
 
-    # -------------------
-    # PCA
-    # -------------------
-    def run_pca(self, features: np.ndarray) -> tuple[np.ndarray, PCA, np.ndarray]:
-        """
-        Fit a PCA model and transform the feature matrix.
-
-        Parameters
-        ----------
-        features : numpy.ndarray
-            Scaled feature matrix.
-
-        Returns
-        -------
-        components : numpy.ndarray
-            The PCA-transformed components.
-        pca : sklearn.decomposition.PCA
-            The fitted PCA model.
-        explained_var : numpy.ndarray
-            Cumulative explained variance ratio.
-        """
-        self.pca = PCA(n_components=self.variance_threshold)
-        self.components = self.pca.fit_transform(features)
-        self.explained_var = np.cumsum(self.pca.explained_variance_ratio_)
-        return self.components, self.pca, self.explained_var
-
-    def plot_explained_variance(self) -> None:
-        """Plot cumulative explained variance across PCA components."""
-        if self.explained_var is None:
-            raise ValueError("Run run_pca() before plotting explained variance.")
-        plt.figure(figsize=(8, 4))
-        plt.plot(range(1, len(self.explained_var) + 1), self.explained_var, marker='o')
-        plt.axhline(y=self.variance_threshold, color='r', linestyle='--')
-        plt.title("Explained Variance by PCA Components")
-        plt.xlabel("Number of Components")
-        plt.ylabel("Cumulative Explained Variance")
-        plt.show()
-
-    # -------------------
-    # KMeans
-    # -------------------
-    def kmeans_clustering(self, n_clusters: Optional[int] = None) -> tuple[KMeans, dict[int, float]]:
-        """
-        Cluster the PCA components using KMeans.
-
-        Parameters
-        ----------
-        n_clusters : int, optional
-            If provided, fit a KMeans model with this fixed number of clusters.
-            Otherwise, iterate through 2 up to ``max_clusters`` and select the
-            number of clusters that maximises the silhouette score.
-
-        Returns
-        -------
-        tuple
-            The fitted KMeans model and a dictionary of silhouette scores keyed by
-            ``k``.
-        """
-        if self.components is None:
-            raise ValueError("Run run_pca() before clustering.")
-        if n_clusters:
-            # user-provided number of clusters
-            self.kmeans_model = KMeans(n_clusters=n_clusters, random_state=42)
-            labels = self.kmeans_model.fit_predict(self.components)
-            score = silhouette_score(self.components, labels)
-            self.kmeans_scores = {n_clusters: score}
+    Notes
+    -----
+    Higher silhouette scores indicate better clustering structure.
+    """
+    scores = {}
+    for k in k_range:
+        model = KMeans(n_clusters=k, random_state=42)
+        labels = model.fit_predict(X)
+        if len(set(labels)) > 1:
+            score = silhouette_score(X, labels)
         else:
-            scores: dict[int, float] = {}
-            for k in range(2, self.max_clusters + 1):
-                model = KMeans(n_clusters=k, random_state=42)
-                labels = model.fit_predict(self.components)
-                score = silhouette_score(self.components, labels)
-                scores[k] = score
-            best_k = max(scores, key=scores.get)
-            self.kmeans_model = KMeans(n_clusters=best_k, random_state=42).fit(self.components)
-            self.kmeans_scores = scores
-        return self.kmeans_model, self.kmeans_scores
-    # -------------------
-    # Optimized KMeans
-    # -------------------
-    def optimized_kmeans_clustering(self, n_clusters: Optional[int] = None, verbose: bool = False) -> tuple[KMeans, dict[int, float]]:
-        """
-        Fit KMeans with improved initialisation and multiple restarts.
+            score = -1  # invalid clustering
+        scores[k] = score
+    return scores
 
-        Parameters
-        ----------
-        n_clusters : int, optional
-            If provided, fit KMeans with this fixed number of clusters.
-        verbose : bool, optional
-            Whether to print silhouette scores during the search. Defaults to ``False``.
 
-        Returns
-        -------
-        tuple
-            The fitted KMeans model and a dictionary of silhouette scores keyed by
-            ``k``.
-        """
-        if self.components is None:
-            raise ValueError("Run run_pca() before clustering.")
-        kmeans_params = {
-            'init': 'k-means++',
-            'n_init': 20,
-            'max_iter': 300,
-            'random_state': 42,
-        }
-        if n_clusters:
-            self.kmeans_model = KMeans(n_clusters=n_clusters, **kmeans_params)
-            labels = self.kmeans_model.fit_predict(self.components)
-            score = silhouette_score(self.components, labels)
-            self.kmeans_scores = {n_clusters: score}
-        else:
-            scores: dict[int, float] = {}
-            for k in range(2, self.max_clusters + 1):
-                model = KMeans(n_clusters=k, **kmeans_params)
-                labels = model.fit_predict(self.components)
-                score = silhouette_score(self.components, labels)
-                scores[k] = score
-                if verbose:
-                    print(f"KMeans with {k} clusters: {score:.4f}")
-            best_k = max(scores, key=scores.get)
-            self.kmeans_model = KMeans(n_clusters=best_k, **kmeans_params).fit(self.components)
-            self.kmeans_scores = scores
-        return self.kmeans_model, self.kmeans_scores
+def fit_kmeans(X: np.ndarray, n_clusters: int, random_state: int = 42) -> KMeans:
+    """Fit a KMeans clustering model.
 
-    # -------------------
-    # Plotting
-    # -------------------
-    def plot_clusters(self) -> None:
-        """Visualise the clustered PCA components as a 2D scatter plot."""
-        if self.kmeans_model is None or self.components is None:
-            raise ValueError("Run kmeans_clustering() first.")
-        labels = self.kmeans_model.predict(self.components)
-        plt.figure(figsize=(6, 6))
-        sns.scatterplot(
-            x=self.components[:, 1], y=self.components[:, 0],
-            hue=labels, palette="Set2", s=50
-        )
-        plt.title(f"KMeans Clusters (k={self.kmeans_model.n_clusters})")
-        plt.xlabel("PCA Component 2")
-        plt.ylabel("PCA Component 1")
-        plt.show()
+    Parameters
+    ----------
+    X : np.ndarray
+        The feature matrix (ideally PCA‑reduced) used for clustering.
+    n_clusters : int
+        Number of clusters to form.
+    random_state : int, optional
+        Seed used by the random number generator. Defaults to 42.
 
-    def plot_scores(self) -> None:
-        """Plot silhouette scores for different numbers of clusters."""
-        if not self.kmeans_scores:
-            raise ValueError("Run kmeans_clustering() first.")
-        plt.figure(figsize=(8, 5))
-        ks = list(self.kmeans_scores.keys())
-        scores = [self.kmeans_scores[k] for k in ks]
-        plt.plot(ks, scores, marker='o')
-        plt.title("Silhouette Scores for KMeans")
-        plt.xlabel("Number of Clusters")
-        plt.ylabel("Silhouette Score")
-        plt.show()
+    Returns
+    -------
+    KMeans
+        The fitted KMeans model.
+    """
+    model = KMeans(n_clusters=n_clusters, random_state=random_state)
+    model.fit(X)
+    return model
 
-    # -------------------
-    # Cluster Assignment
-    # -------------------
-    def assign_clusters(self, df: pd.DataFrame, user_key: str = "user_id") -> pd.DataFrame:
-        """
-        Add cluster labels back to the user-level feature DataFrame.
 
-        This method accepts a ``user_key`` parameter for backward
-        compatibility but it is ignored because clustering operates on the
-        index order of the PCA components. The user-level DataFrame
-        ``df`` should correspond to the features passed to the clustering
-        pipeline in the same order.
+def assign_clusters(model: KMeans, X: np.ndarray) -> np.ndarray:
+    """Predict cluster labels using a trained clustering model.
 
-        Parameters
-        ----------
-        df : pandas.DataFrame
-            The user-level features that were clustered.
-        user_key : str, optional
-            Ignored. Kept for backward compatibility.
+    Parameters
+    ----------
+    model : KMeans
+        A fitted KMeans model.
+    X : np.ndarray
+        The feature matrix used to predict cluster labels.
 
-        Returns
-        -------
-        pandas.DataFrame
-            Copy of ``df`` with an additional ``cluster`` column.
-        """
-        if self.kmeans_model is None or self.components is None:
-            raise ValueError("Run kmeans_clustering() before assigning labels.")
-        labels = self.kmeans_model.predict(self.components)
-        df_with_clusters = df.copy()
-        df_with_clusters["cluster"] = labels
-        return df_with_clusters
+    Returns
+    -------
+    np.ndarray
+        An array of cluster labels for each sample.
+    """
+    return model.predict(X)
 
-    # -------------------
-    # Cluster Profiles
-    # -------------------
-    def cluster_summary(self, df_with_clusters: pd.DataFrame) -> pd.DataFrame:
-        """
-        Compute descriptive statistics for each cluster.
 
-        Parameters
-        ----------
-        df_with_clusters : pandas.DataFrame
-            User-level features with a ``cluster`` column.
+def compute_cluster_summary(features_df: pd.DataFrame, labels: np.ndarray) -> pd.DataFrame:
+    """Compute aggregate statistics for each cluster.
 
-        Returns
-        -------
-        pandas.DataFrame
-            Aggregated statistics (mean, median, min, max, count) per cluster.
-        """
-        return (
-            df_with_clusters
-            .groupby("cluster")
-            .agg(["mean", "median", "min", "max", "count"])
-        )
+    Parameters
+    ----------
+    features_df : pd.DataFrame
+        The DataFrame containing user‑level features.
+    labels : np.ndarray
+        Cluster labels for each user (aligned with ``features_df`` rows).
 
-    def cluster_means(self, df_with_clusters: pd.DataFrame) -> pd.DataFrame:
-        """Return only mean values per cluster (simpler view)."""
-        return df_with_clusters.groupby("cluster").mean(numeric_only=True)
-
-    def plot_cluster_feature(self, df_with_clusters: pd.DataFrame, feature: str) -> None:
-        """
-        Plot the distribution of a feature across clusters using a boxplot.
-
-        Parameters
-        ----------
-        df_with_clusters : pandas.DataFrame
-            User-level features with a ``cluster`` column.
-        feature : str
-            Column name of the feature to plot.
-        """
-        if feature not in df_with_clusters.columns:
-            raise ValueError(f"{feature} not found in DataFrame")
-        plt.figure(figsize=(8, 5))
-        sns.boxplot(x="cluster", y=feature, data=df_with_clusters, palette="Set2", hue="cluster")
-        plt.title(f"Distribution of {feature} across clusters")
-        plt.xlabel("Cluster")
-        plt.ylabel(feature)
-        plt.show()
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame summarising key metrics for each cluster.
+    """
+    df = features_df.copy()
+    df['cluster'] = labels
+    agg_dict = {
+        'cluster_size': ('cluster', 'count'),
+        'booking_count_avg': ('booking_count', 'mean'),
+        'flights_booked_avg': ('flights_booked_count', 'mean'),
+        'hotels_booked_avg': ('hotels_booked_count', 'mean'),
+        'avg_spend_per_booking_avg': ('avg_spend_per_booking', 'mean'),
+        'cancellation_rate_avg': ('cancellation_rate', 'mean'),
+        'discount_usage_rate_avg': ('discount_usage_rate', 'mean'),
+        'age_avg': ('age_mean', 'mean'),
+        'is_married_ratio': ('is_married', 'mean'),
+        'has_children_ratio': ('has_children', 'mean'),
+        'sign_up_year_avg': ('sign_up_year', 'mean'),
+    }
+    summary = df.groupby('cluster').agg(**agg_dict)
+    summary = summary.reset_index().rename(columns={'cluster': 'cluster_id'})
+    # Calculate revenue share if spend present
+    total_revenue = df['base_fare_sum'].sum() + df['hotel_price_sum'].sum()
+    if total_revenue > 0:
+        summary['revenue_share'] = (
+            df.groupby('cluster')[['base_fare_sum', 'hotel_price_sum']].sum().sum(axis=1) / total_revenue
+        ).values
+    return summary

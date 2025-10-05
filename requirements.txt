@@ -1,6 +1,7 @@
-pandas
-numpy
-scikit-learn
-matplotlib
-seaborn
-cycler
+pandas>=1.3
+numpy>=1.21
+scikit-learn>=1.0
+matplotlib>=3.5
+seaborn>=0.11
+nbformat>=5.1
+jupyter

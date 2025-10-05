@@ -1,61 +1,100 @@
-![TravelTide Logo](img/page1.png)
+# TravelTide Customer Segmentation Project
 
-# 🏆 TravelTide Kundensegmentierung
+This repository contains a complete end‑to‑end customer segmentation workflow for the hypothetical travel platform **TravelTide**.  The objective is to analyse anonymised user sessions, engineer meaningful features, identify natural groupings of customers via unsupervised machine learning and propose targeted perks to encourage more bookings and increase revenue.
 
-Diese vollständig überarbeitete Version von TravelTide segmentiert die Kunden der fiktiven Reisesuchmaschine anhand ihres Buchungs‑ und Surfverhaltens, sodass personalisierte Incentives gezielt eingesetzt werden können.
+## Project Structure
 
-## 🎯 Ziele
+```
+traveltide_ai/
+├── data/
+│   └── base‑data.csv           # Raw session‑level dataset provided by the user
+├── src/
+│   ├── __init__.py            # Package initialiser
+│   ├── data_loader.py         # Function to load the raw CSV file
+│   ├── feature_engineering.py # Aggregates session data into user‑level features
+│   ├── clustering.py          # PCA, silhouette analysis, KMeans and cluster summary
+│   └── utils.py               # Helper functions (age calculation, category binning)
+├── notebooks/
+│   └── analysis.ipynb         # Jupyter notebook with exploratory analysis and clustering
+├── report/
+│   ├── cluster_summary.csv    # CSV summarising metrics per cluster
+│   └── figures/               # Folder for figures generated in the notebook (optional)
+├── Travel_Tide.pdf            # PDF summary of clusters, personas and perks
+└── README.md                  # This document
+```
 
-- **Segmentierung:** Identifikation von Nutzergruppen auf Basis von Buchungen, Interaktionen und Rabatten.
-- **Personalisierung:** Ableitung von passgenauen Vorteilen (Perks) pro Segment.
-- **Optimierung:** Datengetriebene Empfehlungen für Marketing‑ und Loyalitätsprogramme.
+## Dataset
 
-## 🚀 Methodik
+The raw dataset (`data/base-data.csv`) contains **session‑level** records for approximately 49,000 travel sessions.  Each row captures information such as:
 
-1. **Datenaufbereitung:** Das Rohdataset (`data/raw/base-data.csv`) wird eingelesen und mithilfe der Funktion `get_base()` aus `src/setup.py` vorverarbeitet. Datumsfelder werden in `datetime` konvertiert.
-2. **Feature Engineering:** Mit `engineer_features()` werden die Einzelereignisse pro Nutzer aggregiert und demografische Merkmale, Buchungszahlen, Sitzungsdauer, Rabatte u. v. m. erzeugt.
-3. **Dimensionalitätsreduktion (PCA):** Die numerischen Features werden skaliert und über eine Hauptkomponentenanalyse reduziert, sodass 95 % der Varianz erhalten bleiben.
-4. **Clustering (KMeans):** Die optimale Anzahl von Clustern wird mittels Silhouette‑Score ermittelt. In dieser Analyse ergeben sich drei Segmente.
-5. **Analyse & Persona‑Definition:** Für jedes Cluster werden Kennzahlen wie durchschnittliche Buchungen, Umsatzanteil und Stornoquote berechnet, daraus Personas abgeleitet und passende Perks vorgeschlagen.
+- `session_id`, `user_id`, `trip_id`
+- Timestamps of session start/end, sign‑up date
+- Demographics: `birthdate`, `gender`, `married`, `has_children`
+- Travel behaviour: whether a flight or hotel was booked, number of seats, nights and checked bags
+- Discounts used and discount amounts for flights and hotels
+- Prices (`base_fare_usd`, `hotel_price_per_room_night_usd`)
+- Origin and destination information (airports, latitude/longitude)
 
-## 👥 Cluster‑Personas & Perks
+We aggregate these session records into **user‑level** features for clustering.  Sensitive identifiers such as `session_id`, `trip_id` or exact geolocations are not used in the final clustering to preserve privacy.
 
-| **Cluster** | **Persona‑Name**          | **Charakteristik**                                                      | **Vorgeschlagener Perk**               |
-|------------:|---------------------------|-------------------------------------------------------------------------|----------------------------------------|
-| **0**       | **Vielflieger**           | Viele Flüge, moderater Rabattanteil, sehr niedrige Stornoquote, hoher Umsatzanteil | ✈️  Kostenlose Sitzplatz‑ oder Lounge‑Upgrades |
-| **1**       | **Premium‑Stornierer**     | Viele Flüge und Hotels, hoher Umsatzanteil, hohe Stornoquote, nutzt Rabatte aktiv   | 🛡️  Flexible Buchungen ohne Stornogebühren |
-| **2**       | **Gelegenheits‑Reisende**  | Wenige Buchungen, geringer Umsatzanteil, kaum Stornos, geringer Rabattanteil        | 🎁  Willkommensrabatt für nächste Buchung |
+## Installation
 
-## 📊 Wichtige Kennzahlen
-
-| Cluster | Nutzer | Ø Flüge | Ø Hotels | Ø Umsatz (USD) | Umsatzanteil (%) | Stornoquote (%) | Ø Rabatt (USD) |
-|-------:|-------:|-------:|---------:|--------------:|-----------------:|----------------:|---------------:|
-| 0      | 2 680  |   3.45 |     0.00 |       1 554.30 |            55.9 |            0.02 |           0.16 |
-| 1      |   595  |   3.57 |     0.00 |       3 441.70 |            27.5 |           16.79 |           0.28 |
-| 2      | 2 723  |   1.05 |     0.00 |         457.11 |            16.7 |            0.01 |           0.17 |
-
-*Hinweis:* Da im verfügbaren Datensatz keine Hotel‑Umsätze enthalten sind, bezieht sich der Umsatz ausschließlich auf Flugbuchungen. Die Stornoquote ist der Durchschnitt der individuellen Stornoquoten pro Nutzer.
-
-## 📈 Analyse & Nutzung
-
-Das Jupyter‑Notebook unter `notebooks/analysis.ipynb` führt die gesamte Analyse Schritt für Schritt aus: Daten laden, Features aggregieren, PCA, Clustering und Auswertung. Über die Python‑Module im Ordner `src/` kann die Logik in eigenen Projekten wiederverwendet werden.
-
-### Installation
-
-Um das Projekt lokal auszuführen, sollten zunächst die benötigten Python‑Pakete installiert werden. Wechsele dazu ins Projektverzeichnis und führe folgenden Befehl aus:
+The project requires Python 3.9+ and the dependencies listed in `requirements.txt`.  To install them into a virtual environment:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Danach kann das Notebook geöffnet oder die Module direkt in eigenen Skripten importiert werden.
+## Usage
 
-## 📑 Bericht
+1. **Run the Jupyter analysis notebook.**  Open `notebooks/analysis.ipynb` in Jupyter Lab or Notebook.  The notebook walks through loading the data, feature engineering, dimensionality reduction, silhouette analysis, clustering, visualisation and interpretation.  All outputs (tables and plots) are reproducible from this notebook.
+2. **Inspect cluster metrics.**  The notebook generates `report/cluster_summary.csv` containing key metrics for each cluster.  You can open this file directly or read it into pandas for further analysis.
+3. **Review the PDF summary.**  The file `Travel_Tide.pdf` provides an at‑a‑glance overview of the cluster metrics and high‑level persona descriptions with recommended perks.
 
-Im Ordner `report/` befindet sich eine CSV-Datei mit der Cluster‑Zusammenfassung (`cluster_summary.csv`). Die beigefügte PDF‑Präsentation fasst die Ergebnisse graphisch zusammen und entspricht inhaltlich den hier berechneten Clustern.
+## Methodology
 
----
+### Feature Engineering
 
-👤 **Autor:** 42KIKO (Refactoring durch ChatGPT)
+The raw session‑level data is aggregated to the user level via `src/feature_engineering.py`.  Notable engineered features include:
 
-📅 **Datum:** 3. Oktober 2025
+- **Total sessions** and **booking counts** (flights & hotels) per user.
+- **Sum and average spend** for flights and hotels.
+- **Discount usage** (sum and mean) for flights and hotels.
+- **Cancellation rate** (cancellations divided by total bookings).
+- **Average seats**, **checked bags** and **nights**.
+- **Demographics:** age (calculated from birth year using 2025 as the reference), encoded gender, marital status and parenthood.
+- **Sign‑up year** and a binned home country to reduce category cardinality.
+
+All non‑numeric columns are encoded or binned appropriately.  Missing values are handled with sensible defaults (e.g., zero for counts, average for means), and invalid ages (negative or >120) are removed.
+
+### Dimensionality Reduction & Clustering
+
+1. **Standardisation & PCA:**  Because the engineered features have different scales, they are standardised using `StandardScaler`.  Principal Component Analysis (PCA) then reduces the dimensionality to five components, capturing most of the variance while enabling visualisation.
+2. **Silhouette analysis:**  We evaluate KMeans for cluster counts from 2 to 7 and compute the silhouette score for each.  The silhouette metric measures how well samples fit within their assigned clusters compared to other clusters; higher scores are better.
+3. **KMeans clustering:**  The optimal number of clusters is chosen based on the highest silhouette score (4 clusters in this project).  We then train a KMeans model and assign each user to a cluster.  Finally, we aggregate cluster‑level metrics to profile each segment.
+
+## Results
+
+**Optimal clusters:**  A silhouette analysis indicated that **four clusters** best balance cohesion and separation.  The four segments differ significantly in booking behaviour, spending and discount usage.
+
+| Cluster | Users | Avg bookings | Avg spend/booking | Cancel rate | Discount rate | Revenue share | Persona | Suggested perks |
+| --- | ---:| ---:| ---:| ---:| ---:| ---:| --- | --- |
+| 0 | 2,589 | 7.0 | $316 | 0.0% | 4.5% | 56.1% | Steady Loyal Travellers | Tiered loyalty rewards, seat upgrades, lounge access, personalised package recommendations |
+| 1 | 2,799 | 2.4 | $243 | 0.0% | **12.0%** | 19.3% | Occasional Bargain Seekers | Personalised discount codes, referral bonuses, flexible booking terms |
+| 2 | 524 | 7.2 | **$418** | **16.6%** | 4.6% | 14.5% | High‑Value Frequent Travellers | Premium membership with flexible change policies, priority customer service, bundled deals |
+| 3 | 86 | 5.2 | **$2,636** | 16.3% | 7.0% | 10.1% | Luxury Big Spenders | VIP concierge services, exclusive offers, complimentary upgrades, personal travel advisor |
+
+**Key insights:**
+
+- **Segment 0 (Steady Loyal Travellers)** contributes the majority of revenue despite moderate spend per booking.  They rarely cancel or use discounts.  Maintaining loyalty through tiered rewards and high service quality is critical.
+- **Segment 1 (Occasional Bargain Seekers)** is the largest by user count but has the lowest revenue share and the highest discount usage.  Targeted promotions, referral incentives and removing frictions can encourage more frequent bookings.
+- **Segment 2 (High‑Value Frequent Travellers)** spends more per booking and books often, but their cancellation rate is elevated.  A premium tier with flexible policies and priority support could retain them and reduce cancellations.
+- **Segment 3 (Luxury Big Spenders)** is tiny but extremely profitable.  Personalised, high‑touch services and exclusivity will maximise retention in this lucrative niche.
+
+## Contributing
+
+This project is intended as a demonstration of end‑to‑end customer segmentation.  Feel free to fork the repository, explore additional features (e.g., geographic behaviour, time‑series patterns) or experiment with alternative clustering algorithms such as Gaussian Mixture Models or DBSCAN.
+
+## License
+
+The code in this repository is provided for educational purposes and is released under the MIT License.  The dataset has been anonymised and is shared solely for the purposes of this exercise.
