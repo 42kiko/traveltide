@@ -10,6 +10,7 @@ import numpy as np
 from datetime import datetime
 from sklearn.metrics import silhouette_score
 import seaborn as sns
+from config import WEIGHTED_SCORE_TOTAL_SESSIONS, WEIGHTED_SCORE_TOTAL_CLICKS, WEIGHTED_SCORE_TOTAL_SESSION_DURATION, WEIGHTED_SCORE_TOTAL_BOOKINGS, WEIGHTED_SCORE_TOTAL_SPEND, WEIGHTED_SCORE_AVG_SPEND_PER_BOOKING, ENGAGEMENT_SCORE_WEIGHTS, VALUE_SCORE_WEIGHTS, DISCOUNT_AFFINITY_WEIGHTS
 
 
 def engineer_features(df, user_key="user_id"):
@@ -517,16 +518,16 @@ def engineer_features_optimized(df, user_key="user_id"):
 
     # Engagement Score (kombiniertes Feature)
     user_features["engagement_score"] = (
-        user_features["total_sessions"] * 0.3 +
-        user_features["total_clicks"] * 0.2 +
-        user_features["total_session_duration"] * 0.2 +
-        user_features["total_bookings"] * 0.3
+        user_features["total_sessions"] * WEIGHTED_SCORE_TOTAL_SESSIONS +
+        user_features["total_clicks"] * WEIGHTED_SCORE_TOTAL_CLICKS +
+        user_features["total_session_duration"] * WEIGHTED_SCORE_TOTAL_SESSION_DURATION +
+        user_features["total_bookings"] * WEIGHTED_SCORE_TOTAL_BOOKINGS
     )
 
     # Value Score (kombiniertes Feature)
     user_features["value_score"] = (
-        user_features["total_spend"] * 0.6 +
-        user_features["avg_spend_per_booking"] * 0.4
+        user_features["total_spend"] * WEIGHTED_SCORE_TOTAL_SPEND +
+        user_features["avg_spend_per_booking"] * WEIGHTED_SCORE_AVG_SPEND_PER_BOOKING
     )
 
     # Fill NAs
@@ -613,20 +614,20 @@ def engineer_features_focused(df, user_key="user_id"):
 
     # WENIGE, ABER AUSSAGEKRÄFTIGE KOMBINIERTE FEATURES:
     user_features["engagement_score"] = (
-        user_features.get("total_sessions", 0) * 0.4 +
-        user_features.get("total_clicks", 0) * 0.3 +
-        user_features.get("total_session_duration", 0) * 0.3
+        user_features.get("total_sessions", 0) * ENGAGEMENT_SCORE_WEIGHTS["total_sessions"] +
+        user_features.get("total_clicks", 0) * ENGAGEMENT_SCORE_WEIGHTS["total_clicks"] +
+        user_features.get("total_session_duration", 0) * ENGAGEMENT_SCORE_WEIGHTS["total_session_duration"]
     )
 
     user_features["value_score"] = (
-        user_features.get("total_spend", 0) * 0.7 +
-        user_features.get("avg_spend_per_booking", 0) * 0.3
+        user_features.get("total_spend", 0) * VALUE_SCORE_WEIGHTS["total_spend"] +
+        user_features.get("avg_spend_per_booking", 0) * VALUE_SCORE_WEIGHTS["avg_spend_per_booking"]
     )
 
     # Statt vieler einzelner Discount-Features - ein kombinierter Score
     user_features["discount_affinity"] = (
-        user_features.get("flight_discount_usage", 0) * 0.6 +
-        user_features.get("hotel_discount_usage", 0) * 0.4
+        user_features.get("flight_discount_usage", 0) * DISCOUNT_AFFINITY_WEIGHTS["flight_discount_usage"] +
+        user_features.get("hotel_discount_usage", 0) * DISCOUNT_AFFINITY_WEIGHTS["hotel_discount_usage"]
     )
 
     # Fill NAs
